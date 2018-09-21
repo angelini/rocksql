@@ -1,0 +1,85 @@
+t1
+  c1: int
+  c2: bool
+
+t2
+  c5: int
+  c6: string
+  c7: date
+
+------------
+
+SELECT c1, c2
+FROM t1
+
+%1 = Projection(t1, [c1, c2])
+
+%1_c1 = Fetch(t1.c1, None)
+%1_c2 = Fetch(t1.c2, None)
+
+BuildRows([c1: int, c2: bool], [%1_c1, %1_c1])
+
+------------
+
+SELECT c1
+FROM t1
+WHERE c2 = true
+
+%1 = Selection(t1, [c2 = true])
+%2 = Projection(%1, [c1])
+
+%1_s0 = Scan(t1.c2, [c2 = true])
+%2_c1 = Fetch(t1.c1, %31_rs)
+
+BuildRows([c1: int], [%2_c1])
+
+------------
+
+SELECT c5
+FROM t2
+WHERE c6 = "a"
+  AND c7 = "1970"
+
+%1 = Select(t2, [c6 = "a" AND c7 = "1970"]
+%2 = Projection(%1, [c5])
+
+%1_s1 = Scan(t2.c6, [c6 = "a"])
+%1_s2 = Scan(t2.c7, [c = "1970"])
+%1_s0 = And(%1_r1, %1_r2)
+%2_c5 = Fetch(t2.c5, %1_r0)
+
+BuildRows([c5: int], [%2_c5])
+
+------------
+
+SELECT t1.c2, t2.c6
+FROM t1
+INNER JOIN t2
+  ON t1.c1 = t2.c5
+WHERE t2.c7 = "1970"
+
+%1 = Selection(t2, [t2.c7 = "1970"])
+%2 = Join(t1, %1, [t1.c1 = %1.c5], inner)
+%3 = Projection(%2, [c2, c6])
+
+%1_s0 = ScanValues(t2.c7, [c7 = "1970"])
+(%2_jl, %2_jr) = Join(t1.c1, %1_s0, [c1 = %1_s0], inner)
+%3_c2 = Fetch(t1.c2, %2_jl)
+%3_c6 = Fetch(%1_s0, %2_jr)
+
+BuildRows([t1.c2: bool, t2.c6: string], [%3_c2, %3_c6])
+
+------------
+
+SELECT COUNT(c1) AS c3
+FROM t1
+WHERE c2 = true
+
+%1 = Selection(t1, [c2 = true])
+%2 = Aggregate(%1, [], {c1: count})
+
+%1_s0 = Scan(t1.c2, [c2 = true])
+%2_t0 = Fetch(t1.c1, %1_s0)
+%2_c3 = Aggregate(%2_t0, count)
+
+BuildRows([c: int], [%2_c1])
